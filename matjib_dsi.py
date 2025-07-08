@@ -7,6 +7,15 @@ from streamlit_folium import st_folium
 # Kakao API Key 하드코딩
 api_key = "3954ac5e45b2aacab5d7158785e8c349"
 
+# GitHub raw csv 주소로 파일명과 함께 지정
+GITHUB_RAW_BASE = "https://raw.githubusercontent.com/cdshadow/daejeon/main/"
+
+csv_files = [
+    (GITHUB_RAW_BASE + "lunch.csv",  "일반식당",   "orange"),
+    (GITHUB_RAW_BASE + "event.csv",  "행사 후 식당", "green"),
+    (GITHUB_RAW_BASE + "dinner.csv", "저녁회식",   "blue"),
+]
+
 def get_coordinates(address, api_key):
     url = "https://dapi.kakao.com/v2/local/search/address.json"
     headers = {"Authorization": f"KakaoAK {api_key}"}
@@ -26,20 +35,15 @@ def get_coordinates(address, api_key):
 st.set_page_config(layout="wide")
 st.title("대세연 맛집 지도")
 
-csv_files = [
-    ("lunch.csv",  "일반식당",   "orange"),
-    ("event.csv",  "행사 후 식당", "green"),
-    ("dinner.csv", "저녁회식",   "blue")
-]
-
 @st.cache_data(show_spinner=True)
-def geocode_df(csv_file, api_key):
-    try:
-        df = pd.read_csv(csv_file, encoding="utf-8")
-    except UnicodeDecodeError:
-        df = pd.read_csv(csv_file, encoding="cp949")
+def geocode_df(csv_url, api_key):
+    df = pd.read_csv(csv_url)
+    # 컬럼에 공백 있을 때 자동 정리
+    df.columns = [c.strip() for c in df.columns]
     if "address" not in df.columns or "name" not in df.columns:
-        raise ValueError(f"{csv_file} 파일에 'name', 'address' 컬럼이 필요합니다.")
+        raise ValueError(f"{csv_url} 파일에 'name', 'address' 컬럼이 필요합니다.")
+    # address 값도 strip 처리 (혹시 있을 공백 제거)
+    df['address'] = df['address'].astype(str).str.strip()
     coords = df['address'].apply(lambda x: get_coordinates(x, api_key))
     x, y = zip(*coords)
     df = df.copy()
@@ -49,12 +53,12 @@ def geocode_df(csv_file, api_key):
 
 # 1. 모든 데이터 로딩 및 지오코딩
 layer_data = []
-for file, label, color in csv_files:
+for url, label, color in csv_files:
     try:
-        df = geocode_df(file, api_key)
+        df = geocode_df(url, api_key)
         layer_data.append((df, label, color))
     except Exception as e:
-        st.error(f"{file} 로딩 실패: {e}")
+        st.error(f"{url} 로딩 실패: {e}")
 
 # 2. 지도 생성
 map_center = [36.397924, 127.402470]  # 대전시청 중심
@@ -63,16 +67,15 @@ m = folium.Map(location=map_center, zoom_start=16)
 # 3. 각 레이어에 데이터 추가
 for df, label, color in layer_data:
     feature_group = folium.FeatureGroup(name=label, show=True)
+    label_bg = "#1877f2" if color=="blue" else ("orange" if color=="orange" else "green")
     for idx, row in df.iterrows():
         if pd.notnull(row['x']) and pd.notnull(row['y']):
-            # 기본 마커 (클릭시 팝업)
             folium.Marker(
                 location=[row['y'], row['x']],
                 popup=row['name'],
                 tooltip=row['name'],
                 icon=folium.Icon(color=color, icon="info-sign"),
             ).add_to(feature_group)
-            # 항상 보이는 라벨
             folium.map.Marker(
                 [row['y'], row['x']],
                 icon=folium.DivIcon(
@@ -81,7 +84,7 @@ for df, label, color in layer_data:
                         font-size: 12px;
                         color: white;
                         font-weight: bold;
-                        background: #1877f2;
+                        background: {label_bg};
                         border-radius: 6px;
                         padding: 3px 10px;
                         border: 1px solid #999;
