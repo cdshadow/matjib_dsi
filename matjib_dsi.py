@@ -93,6 +93,7 @@ for df, label, color in layer_data:
             ).add_to(feature_group)
     feature_group.add_to(m)
 
-folium.LayerControl().add_to(m)
+# 여기만 position="topleft"로 변경!
+folium.LayerControl(position="topleft").add_to(m)
 
 st_folium(m, width=1200, height=800)
