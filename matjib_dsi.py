@@ -4,10 +4,9 @@ import requests
 import folium
 from streamlit_folium import st_folium
 
-# 1. Kakao API Key 하드코딩
+# Kakao API Key 하드코딩
 api_key = "3954ac5e45b2aacab5d7158785e8c349"
 
-# 2. Kakao API 지오코딩 함수
 def get_coordinates(address, api_key):
     url = "https://dapi.kakao.com/v2/local/search/address.json"
     headers = {"Authorization": f"KakaoAK {api_key}"}
@@ -25,22 +24,22 @@ def get_coordinates(address, api_key):
         return None, None
 
 st.set_page_config(layout="wide")
-st.title("대세연 맛집")
+st.title("대세연 모임 장소 (점심, 저녁, 이벤트) 지도")
 
-# 3. place_map_template.csv 파일 자동 불러오기
-csv_file_path = "place_map_template.csv"
-try:
-    df = pd.read_csv(csv_file_path, encoding="utf-8")
-except UnicodeDecodeError:
-    df = pd.read_csv(csv_file_path, encoding="cp949")
+csv_files = [
+    ("lunch.csv",  "점심 모임",   "orange"),
+    ("dinner.csv", "저녁 모임",   "blue"),
+    ("event.csv",  "이벤트 장소", "green"),
+]
 
-if "address" not in df.columns or "name" not in df.columns:
-    st.error("'place_map_template.csv' 파일에 'name', 'address' 컬럼이 필요합니다.")
-    st.stop()
-
-# 4. 좌표 얻기 (캐싱)
 @st.cache_data(show_spinner=True)
-def geocode_df(df, api_key):
+def geocode_df(csv_file, api_key):
+    try:
+        df = pd.read_csv(csv_file, encoding="utf-8")
+    except UnicodeDecodeError:
+        df = pd.read_csv(csv_file, encoding="cp949")
+    if "address" not in df.columns or "name" not in df.columns:
+        raise ValueError(f"{csv_file} 파일에 'name', 'address' 컬럼이 필요합니다.")
     coords = df['address'].apply(lambda x: get_coordinates(x, api_key))
     x, y = zip(*coords)
     df = df.copy()
@@ -48,41 +47,52 @@ def geocode_df(df, api_key):
     df['y'] = y
     return df
 
-df = geocode_df(df, api_key)
+# 1. 모든 데이터 로딩 및 지오코딩
+layer_data = []
+for file, label, color in csv_files:
+    try:
+        df = geocode_df(file, api_key)
+        layer_data.append((df, label, color))
+    except Exception as e:
+        st.error(f"{file} 로딩 실패: {e}")
 
-# 5. folium 지도 생성
+# 2. 지도 생성
 map_center = [36.397924, 127.402470]  # 대전시청 중심
 m = folium.Map(location=map_center, zoom_start=16)
 
-for idx, row in df.iterrows():
-    if pd.notnull(row['x']) and pd.notnull(row['y']):
-        # 기본 마커 (클릭시 팝업)
-        folium.Marker(
-            location=[row['y'], row['x']],
-            popup=row['name'],
-            tooltip=row['name'],
-            icon=folium.Icon(color="blue", icon="info-sign"),
-        ).add_to(m)
+# 3. 각 레이어에 데이터 추가
+for df, label, color in layer_data:
+    feature_group = folium.FeatureGroup(name=label, show=True)
+    for idx, row in df.iterrows():
+        if pd.notnull(row['x']) and pd.notnull(row['y']):
+            # 기본 마커 (클릭시 팝업)
+            folium.Marker(
+                location=[row['y'], row['x']],
+                popup=row['name'],
+                tooltip=row['name'],
+                icon=folium.Icon(color=color, icon="info-sign"),
+            ).add_to(feature_group)
+            # 항상 보이는 라벨
+            folium.map.Marker(
+                [row['y'], row['x']],
+                icon=folium.DivIcon(
+                    html=f"""<div style="
+                        display: inline-block;
+                        font-size: 12px;
+                        color: white;
+                        font-weight: bold;
+                        background: #1877f2 if color=='blue' else ('orange' if color=='orange' else 'green');
+                        border-radius: 6px;
+                        padding: 3px 10px;
+                        border: 1px solid #999;
+                        opacity: 0.85;
+                        text-align: center;
+                        white-space: nowrap;
+                    ">{row['name']}</div>"""
+                )
+            ).add_to(feature_group)
+    feature_group.add_to(m)
 
-        # 항상 보이는 라벨
-        folium.map.Marker(
-            [row['y'], row['x']],
-            icon=folium.DivIcon(
-                html=f"""<div style="
-                    display: inline-block;
-                    font-size: 12px;
-                    color: white;
-                    font-weight: bold;
-                    background: #1877f2;
-                    border-radius: 6px;
-                    padding: 3px 10px;
-                    border: 1px solid #999;
-                    opacity: 0.85;
-                    text-align: center;
-                    white-space: nowrap;
-                ">{row['name']}</div>"""
-            )
-        ).add_to(m)
+folium.LayerControl().add_to(m)
 
-st.write("")
-st_folium(m, width=1000, height=650)
+st_folium(m, width=1200, height=800)
