@@ -24,12 +24,12 @@ def get_coordinates(address, api_key):
         return None, None
 
 st.set_page_config(layout="wide")
-st.title("대세연 모임 장소 (점심, 저녁, 이벤트) 지도")
+st.title("대세연 맛집 지도")
 
 csv_files = [
-    ("lunch.csv",  "점심 모임",   "orange"),
-    ("dinner.csv", "저녁 모임",   "blue"),
-    ("event.csv",  "이벤트 장소", "green"),
+    ("lunch.csv",  "일반식당",   "orange"),
+    ("dinner.csv", "저녁회식",   "blue"),
+    ("event.csv",  "행사 후 식당", "green"),
 ]
 
 @st.cache_data(show_spinner=True)
@@ -81,7 +81,7 @@ for df, label, color in layer_data:
                         font-size: 12px;
                         color: white;
                         font-weight: bold;
-                        background: #1877f2 if color=='blue' else ('orange' if color=='orange' else 'green');
+                        background: #1877f2;
                         border-radius: 6px;
                         padding: 3px 10px;
                         border: 1px solid #999;
