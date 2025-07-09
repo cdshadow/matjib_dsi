@@ -29,7 +29,8 @@ st.title("대세연 맛집 지도")
 csv_files = [
     ("lunch.csv",  "일반식당",   "orange"),
     ("event.csv",  "행사 후 식당", "green"),
-    ("dinner.csv", "저녁회식",   "blue")
+    ("dinner.csv", "저녁회식",   "blue"),
+    ("cafe.csv", "카페",   "purple"),
 ]
 
 @st.cache_data(show_spinner=True)
