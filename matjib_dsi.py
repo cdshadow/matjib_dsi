@@ -30,7 +30,8 @@ csv_files = [
     ("lunch.csv",  "일반식당",   "orange"),
     ("event.csv",  "행사 후 식당", "green"),
     ("dinner.csv", "저녁회식",   "blue"),
-    ("cafe.csv", "카페",   "purple"),
+    ("cafe.csv", "카페", "purple"),
+    ("night_work.csv", "초과식당", "red"),
 ]
 
 @st.cache_data(show_spinner=True)
