@@ -98,3 +98,14 @@ for df, label, color in layer_data:
 folium.LayerControl(position="topleft").add_to(m)
 
 st_folium(m, width=1200, height=800)
+
+# 6. HTML로 다운로드 옵션 (ValueError 방지)
+import io
+html_str = m.get_root().render()
+html_data = io.BytesIO(html_str.encode('utf-8'))
+st.download_button(
+    label="지도 HTML 다운로드",
+    data=html_data.getvalue(),
+    file_name="facility_map.html",
+    mime="text/html"
+)
