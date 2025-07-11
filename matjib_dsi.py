@@ -3,6 +3,7 @@ import pandas as pd
 import requests
 import folium
 from streamlit_folium import st_folium
+import io
 
 # Kakao API Key 하드코딩
 api_key = "3954ac5e45b2aacab5d7158785e8c349"
@@ -64,10 +65,12 @@ m = folium.Map(location=map_center, zoom_start=16)
 
 # 3. 각 레이어에 데이터 추가
 for df, label, color in layer_data:
-    feature_group = folium.FeatureGroup(name=label, show=True)
+    # 여기서 show 값을 조정!
+    show = label in ["일반식당", "카페"]  # 기본 활성화 레이어만 True
+    feature_group = folium.FeatureGroup(name=label, show=show)
     for idx, row in df.iterrows():
         if pd.notnull(row['x']) and pd.notnull(row['y']):
-            # 기본 마커 (클릭시 팝업)
+            # 기본 마커
             folium.Marker(
                 location=[row['y'], row['x']],
                 popup=row['name'],
@@ -95,13 +98,13 @@ for df, label, color in layer_data:
             ).add_to(feature_group)
     feature_group.add_to(m)
 
-# 여기만 position="topleft"로 변경!
+# LayerControl 위치
 folium.LayerControl(position="topleft").add_to(m)
 
+# Streamlit에 지도 표시
 st_folium(m, width=1200, height=800)
 
-# 6. HTML로 다운로드 옵션 (ValueError 방지)
-import io
+# HTML로 다운로드 옵션
 html_str = m.get_root().render()
 html_data = io.BytesIO(html_str.encode('utf-8'))
 st.download_button(
