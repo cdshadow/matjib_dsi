@@ -66,7 +66,7 @@ m = folium.Map(location=map_center, zoom_start=16)
 # 3. 각 레이어에 데이터 추가
 for df, label, color in layer_data:
     # 여기서 show 값을 조정!
-    show = label in ["일반식당", "카페"]  # 기본 활성화 레이어만 True
+    show = label in ["일반식당"]  # 기본 활성화 레이어만 True
     feature_group = folium.FeatureGroup(name=label, show=show)
     for idx, row in df.iterrows():
         if pd.notnull(row['x']) and pd.notnull(row['y']):
