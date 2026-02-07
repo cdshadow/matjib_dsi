@@ -25,7 +25,7 @@ def get_coordinates(address, api_key):
         return None, None
 
 st.set_page_config(layout="wide")
-st.title("대세연 맛집 지도")
+st.title("대전연 맛집 지도")
 
 csv_files = [
     ("lunch.csv",  "일반식당",   "orange"),
@@ -113,3 +113,4 @@ st.download_button(
     file_name="facility_map.html",
     mime="text/html"
 )
+
